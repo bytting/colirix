@@ -48,20 +48,17 @@ class Colirix(QtGui.QMainWindow):
         grid = QtGui.QGridLayout()
         grid.setSpacing(6)
 
-        names = ['Log file', 'Report Organization', 'Report Context', 'Group/Team', 'Organization',
-                 'Organization Country', 'DoseRate Type', 'Location', 'Municipality', 'Country', 'Uncertainty']
-
-        grid.addWidget(QtGui.QLabel(names[0]), 0, 0)
-        grid.addWidget(QtGui.QLabel(names[1]), 1, 0)
-        grid.addWidget(QtGui.QLabel(names[2]), 2, 0)
-        grid.addWidget(QtGui.QLabel(names[3]), 3, 0)
-        grid.addWidget(QtGui.QLabel(names[4]), 4, 0)
-        grid.addWidget(QtGui.QLabel(names[5]), 5, 0)
-        grid.addWidget(QtGui.QLabel(names[6]), 6, 0)
-        grid.addWidget(QtGui.QLabel(names[7]), 7, 0)
-        grid.addWidget(QtGui.QLabel(names[8]), 8, 0)
-        grid.addWidget(QtGui.QLabel(names[9]), 9, 0)
-        grid.addWidget(QtGui.QLabel(names[10]), 10, 0)
+        grid.addWidget(QtGui.QLabel('Log file'), 0, 0)
+        grid.addWidget(QtGui.QLabel('Report Organization'), 1, 0)
+        grid.addWidget(QtGui.QLabel('Report Context'), 2, 0)
+        grid.addWidget(QtGui.QLabel('Group/Team'), 3, 0)
+        grid.addWidget(QtGui.QLabel('Organization'), 4, 0)
+        grid.addWidget(QtGui.QLabel('Organization Country'), 5, 0)
+        grid.addWidget(QtGui.QLabel('DoseRate Type'), 6, 0)
+        grid.addWidget(QtGui.QLabel('Location'), 7, 0)
+        grid.addWidget(QtGui.QLabel('Municipality'), 8, 0)
+        grid.addWidget(QtGui.QLabel('Country'), 9, 0)
+        grid.addWidget(QtGui.QLabel('Uncertainty'), 10, 0)
 
         self.edit_file = QtGui.QLineEdit()
         self.edit_rep_org = QtGui.QLineEdit()
@@ -177,6 +174,31 @@ class Colirix(QtGui.QMainWindow):
         self.create_and_append_text_element(doc, org_contact, 'base:OrganisationID', self.edit_rep_org.text())
         self.create_and_append_text_element(doc, org_contact, 'base:Country', self.edit_country.text())
 
+        meas = doc.createElement('meas:Measurements')
+        el.appendChild(meas)
+        meas.setAttribute('ValidAt', str(datetime.now().isoformat())) # FIXME: Wrong date
+
+        dose_rate = doc.createElement('meas:DoseRate')
+        meas.appendChild(dose_rate)
+
+        self.create_and_append_text_element(doc, dose_rate, 'meas:DoseRateType', 'Gamma')
+
+        meas_period = doc.createElement('meas:MeasuringPeriod')
+        dose_rate.appendChild(meas_period)
+
+        self.create_and_append_text_element(doc, meas_period, 'meas:StartTime', str(datetime.now().isoformat())) # FIXME: Wrong date
+        self.create_and_append_text_element(doc, meas_period, 'meas:EndTime', str(datetime.now().isoformat())) # FIXME: Wrong date
+
+        meas2 = doc.createElement('meas:Measurements')
+        dose_rate.appendChild(meas2)
+
+        with open(fname, "r") as fin:
+            first_line = True
+            for line in fin:
+                if not first_line:
+                    self.create_and_append_measurement(doc, meas2, line)
+                first_line = False
+
         print(doc.toprettyxml())
         #print(doc.toprettyxml(indent="\t", encoding="utf-8"))
 
@@ -189,6 +211,11 @@ class Colirix(QtGui.QMainWindow):
         node.appendChild(elem)
         text_node = doc.createTextNode(str(text))
         elem.appendChild(text_node)
+
+    def create_and_append_measurement(self, doc, node, line):
+        measurement = doc.createElement('meas:Measurement')
+        node.appendChild(measurement)
+        # FIXME: Parse line
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
