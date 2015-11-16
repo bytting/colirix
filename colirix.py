@@ -248,9 +248,9 @@ class Colirix(QtGui.QMainWindow):
         self.create_and_append_text_element(doc, location, 'loc:Country', self.edit_country.text())
 
         value = self.create_and_append_text_element(doc, measurement, 'meas:Value', '{:e}'.format(val))
-        value.setAttribute("Unit", "Sv/s")
+        value.setAttribute("Unit", "Sv/h")
 
-        uncertainty = self.create_and_append_text_element(doc, measurement, 'meas:Value', self.edit_unc.text())
+        uncertainty = self.create_and_append_text_element(doc, measurement, 'meas:Uncertainty', self.edit_unc.text())
         uncertainty.setAttribute("Unit", "%")
 
     def get_meta_from_file(self, fname):
