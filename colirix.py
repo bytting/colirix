@@ -160,7 +160,8 @@ class Colirix(QtGui.QMainWindow):
         el.appendChild(id)
 
         self.create_and_append_text_element(doc, id, 'id:OrganisationReporting', self.edit_rep_org.text())
-        self.create_and_append_text_element(doc, id, 'id:DateAndTimeOfCreation', datetime.now().isoformat())
+        now = datetime.now().replace(microsecond=0)
+        self.create_and_append_text_element(doc, id, 'id:DateAndTimeOfCreation', now.isoformat() + 'Z')
         self.create_and_append_text_element(doc, id, 'id:ReportContext', self.edit_rep_con.text())
         self.create_and_append_text_element(doc, id, 'id:ReportUUID', uuid.uuid4())
 
@@ -176,7 +177,10 @@ class Colirix(QtGui.QMainWindow):
 
         meas = doc.createElement('meas:Measurements')
         el.appendChild(meas)
-        meas.setAttribute('ValidAt', str(datetime.now().isoformat())) # FIXME: Wrong date
+        start_date, end_date = self.get_meta_from_file(fname)
+        start_date = start_date.replace(microsecond=0)
+        end_date = end_date.replace(microsecond=0)
+        meas.setAttribute('ValidAt', start_date.isoformat() + 'Z')
 
         dose_rate = doc.createElement('meas:DoseRate')
         meas.appendChild(dose_rate)
@@ -186,8 +190,8 @@ class Colirix(QtGui.QMainWindow):
         meas_period = doc.createElement('meas:MeasuringPeriod')
         dose_rate.appendChild(meas_period)
 
-        self.create_and_append_text_element(doc, meas_period, 'meas:StartTime', str(datetime.now().isoformat())) # FIXME: Wrong date
-        self.create_and_append_text_element(doc, meas_period, 'meas:EndTime', str(datetime.now().isoformat())) # FIXME: Wrong date
+        self.create_and_append_text_element(doc, meas_period, 'meas:StartTime', start_date.isoformat() + 'Z')
+        self.create_and_append_text_element(doc, meas_period, 'meas:EndTime', end_date.isoformat() + 'Z')
 
         meas2 = doc.createElement('meas:Measurements')
         dose_rate.appendChild(meas2)
@@ -198,8 +202,13 @@ class Colirix(QtGui.QMainWindow):
                 if not first_line:
                     self.create_and_append_measurement(doc, meas2, line)
                 first_line = False
+            fin.close()
 
-        print(doc.toprettyxml())
+        with open(fname_xml, "w") as fout:
+            fout.write(doc.toprettyxml())
+            fout.close()
+
+        print("File " + fname_xml + " created")
         #print(doc.toprettyxml(indent="\t", encoding="utf-8"))
 
         #pi = doc.createProcessingInstruction('xml', 'version="1.0" encoding="utf-8"')
@@ -211,11 +220,64 @@ class Colirix(QtGui.QMainWindow):
         node.appendChild(elem)
         text_node = doc.createTextNode(str(text))
         elem.appendChild(text_node)
+        return elem
 
     def create_and_append_measurement(self, doc, node, line):
+        items = line.split(";")
+        lat = float(items[1])
+        lon = float(items[2])
+        if lat == 0.0 or lon == 0.0:
+            return
+        val = float(items[9].strip())
+
         measurement = doc.createElement('meas:Measurement')
         node.appendChild(measurement)
-        # FIXME: Parse line
+
+        location = doc.createElement('loc:Location')
+        measurement.appendChild(location)
+
+        self.create_and_append_text_element(doc, location, 'loc:Name', self.edit_loc.text())
+
+        geo = doc.createElement('loc:GeographicCoordinates')
+        location.appendChild(geo)
+
+        self.create_and_append_text_element(doc, geo, 'loc:Latitude', str(lat))
+        self.create_and_append_text_element(doc, geo, 'loc:Longitude', str(lon))
+
+        self.create_and_append_text_element(doc, location, 'loc:Municipality', self.edit_munic.text())
+        self.create_and_append_text_element(doc, location, 'loc:Country', self.edit_country.text())
+
+        value = self.create_and_append_text_element(doc, measurement, 'meas:Value', '{:e}'.format(val))
+        value.setAttribute("Unit", "Sv/s")
+
+        uncertainty = self.create_and_append_text_element(doc, measurement, 'meas:Value', self.edit_unc.text())
+        uncertainty.setAttribute("Unit", "%")
+
+    def get_meta_from_file(self, fname):
+        start_date, end_date = None, None
+        with open(fname, "r") as fin:
+            first_line = True
+            for line in fin:
+                if not first_line:
+                    items = line.split(";")
+                    lat = float(items[1])
+                    lon = float(items[2])
+                    if lat == 0.0 or lon == 0.0:
+                        continue
+
+                    d = datetime.strptime(items[4].strip(), "%Y/%m/%d %Hh:%Mm:%Ss")
+                    if start_date is None:
+                        start_date, end_date = d, d
+                    else:
+                        if start_date > d:
+                            start_date = d
+                        if end_date < d:
+                            end_date = d
+
+                first_line = False
+            fin.close()
+
+        return start_date, end_date
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
