@@ -110,11 +110,9 @@ class Colirix(QtGui.QMainWindow):
         box.addItem(panel)
         frame.setLayout(box)
         self.setCentralWidget(frame)
-
         self.show()
 
     def center(self):
-
         qr = self.frameGeometry()
         cp = QtGui.QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
@@ -226,9 +224,9 @@ class Colirix(QtGui.QMainWindow):
         items = line.split(";")
         lat = float(items[1])
         lon = float(items[2])
-        if lat == 0.0 or lon == 0.0:
+        if lat == 0.0 and lon == 0.0:
             return
-        val = float(items[9].strip())
+        val = float(items[9].strip()) * float(1000) * float(1000)
 
         measurement = doc.createElement('meas:Measurement')
         node.appendChild(measurement)
@@ -247,8 +245,8 @@ class Colirix(QtGui.QMainWindow):
         self.create_and_append_text_element(doc, location, 'loc:Municipality', self.edit_munic.text())
         self.create_and_append_text_element(doc, location, 'loc:Country', self.edit_country.text())
 
-        value = self.create_and_append_text_element(doc, measurement, 'meas:Value', '{:e}'.format(val))
-        value.setAttribute("Unit", "Sv/h")
+        value = self.create_and_append_text_element(doc, measurement, 'meas:Value', '{:e}'.format(val / float(3600)))
+        value.setAttribute("Unit", "Sv/s")
 
         uncertainty = self.create_and_append_text_element(doc, measurement, 'meas:Uncertainty', self.edit_unc.text())
         uncertainty.setAttribute("Unit", "%")
@@ -262,7 +260,7 @@ class Colirix(QtGui.QMainWindow):
                     items = line.split(";")
                     lat = float(items[1])
                     lon = float(items[2])
-                    if lat == 0.0 or lon == 0.0:
+                    if lat == 0.0 and lon == 0.0:
                         continue
 
                     d = datetime.strptime(items[4].strip(), "%Y/%m/%d %Hh:%Mm:%Ss")
@@ -276,7 +274,6 @@ class Colirix(QtGui.QMainWindow):
 
                 first_line = False
             fin.close()
-
         return start_date, end_date
 
 if __name__ == '__main__':
