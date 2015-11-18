@@ -226,7 +226,7 @@ class Colirix(QtGui.QMainWindow):
         lon = float(items[2])
         if lat == 0.0 and lon == 0.0:
             return
-        val = float(items[9].strip()) * float(1000) * float(1000)
+        val = float(items[9].strip())
 
         measurement = doc.createElement('meas:Measurement')
         node.appendChild(measurement)
@@ -245,8 +245,8 @@ class Colirix(QtGui.QMainWindow):
         self.create_and_append_text_element(doc, location, 'loc:Municipality', self.edit_munic.text())
         self.create_and_append_text_element(doc, location, 'loc:Country', self.edit_country.text())
 
-        value = self.create_and_append_text_element(doc, measurement, 'meas:Value', '{:e}'.format(val / float(3600)))
-        value.setAttribute("Unit", "Sv/s")
+        value = self.create_and_append_text_element(doc, measurement, 'meas:Value', '{:e}'.format(val))
+        value.setAttribute("Unit", "Sv/h")
 
         uncertainty = self.create_and_append_text_element(doc, measurement, 'meas:Uncertainty', self.edit_unc.text())
         uncertainty.setAttribute("Unit", "%")
